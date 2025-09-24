@@ -1,7 +1,6 @@
 build:
   uri: https://github.com/tommaso-borgato/wildfly-distributed-sessions-infinispan.git
   ref: main
-  contextDir: wildfly/distributed-sessions-infinispan
   env:
     - name: MAVEN_ARGS_APPEND
       value: -P openshift
