@@ -1,0 +1,18 @@
+build:
+  uri: https://github.com/tommaso-borgato/wildfly-distributed-sessions-infinispan.git
+  ref: main
+  contextDir: wildfly/distributed-sessions-infinispan
+  env:
+    - name: MAVEN_ARGS_APPEND
+      value: -P openshift
+  s2i:
+    buildApplicationImage: true
+deploy:
+  env:
+  volumes:
+    - name: connect-secret-crt-volume
+      secret:
+        secretName: connect-secret-crt
+  volumeMounts:
+    - name: connect-secret-crt-volume
+      mountPath: /distributed-sessions-infinispan

@@ -1,0 +1,3 @@
+/subsystem=logging/logger=org.wildfly.clustering.web.infinispan:add()
+/subsystem=logging/logger=org.wildfly.clustering.web.infinispan:write-attribute(name=level, value=TRACE)
+/subsystem=logging/logger=org.wildfly.clustering.web.infinispan:add-handler(name=CONSOLE)
