@@ -6,7 +6,7 @@ web-clustering layer to store session data in a distributed cache which is backe
 The WildFly/EAP Maven plugin is configured to build the application and trimmed server, based on required feature packs.
 
 
-## Manual Setup
+## Manual Setup on OpenShift
 
 ### Deploy Infinispan Operator
 
@@ -119,3 +119,32 @@ if needed, uninstall like this:
 ```bash
 helm uninstall distributed-sessions-infinispan
 ```
+
+## Manual Setup locally
+
+### Stat Infinispan
+
+```bash
+podman run -it --rm --network=host --name=my-infinispan -p 11222:11222 -e USER="foo" -e PASS="bar" quay.io/infinispan/server:latest
+```
+
+### Build WildFly
+
+```bash
+mvn clean install -P local
+```
+
+### Stat WildFly
+
+```bash
+export INFINISPAN_SERVER_HOST=example-infinispan
+export INFINISPAN_SERVER_PORT=11222
+export INFINISPAN_SERVER_TRUST_STORE_FILENAME=/distributed-sessions-infinispan/tls.crt
+export INFINISPAN_SERVER_USER=foo
+export INFINISPAN_SERVER_PASSWORD=bar
+
+./target/server/bin/standalone.sh
+```
+
+Now hit http://localhost:8080/serial a few times using your browser (we need cookies), then shut down and re-start WildFly:
+the serial number continues to increase because that data was stored in Infinispan and wasn't lots when WildFly stopped.

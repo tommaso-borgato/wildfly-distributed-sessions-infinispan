@@ -149,4 +149,33 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>local</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>${wildfly-maven-plugin.groupId}</groupId>
+                        <artifactId>${wildfly-maven-plugin.artifactId}</artifactId>
+                        <!-- Use configuration from parent and append specific configuration for project - layers, cli,...-->
+                        <configuration>
+                            <layers combine.children="append">
+                                <layer>logging</layer>
+                                <layer>web-clustering</layer>
+                            </layers>
+                            <packaging-scripts>
+                                <packaging-script>
+                                    <scripts>
+                                        <script>./scripts/script-local.cli</script>
+                                    </scripts>
+                                    <!-- We want the env variables to be resolved during server execution -->
+                                    <resolve-expressions>false</resolve-expressions>
+                                </packaging-script>
+                            </packaging-scripts>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
