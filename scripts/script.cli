@@ -1,7 +1,7 @@
 /subsystem=logging/logger=org.wildfly.clustering.web.infinispan:add()
-/subsystem=logging/logger=org.wildfly.clustering.web.infinispan:write-attribute(name=level, value=TRACE)
+/subsystem=logging/logger=org.wildfly.clustering.web.infinispan:write-attribute(name=level, value=DEBUG)
 /subsystem=logging/logger=org.wildfly.clustering.web.infinispan:add-handler(name=CONSOLE)
-/socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=remote-rhdg-server:add(host=example-infinispan, port=11222)
+/socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=remote-rhdg-server:add(host="${env.INFINISPAN_SERVER_HOST}", port=${env.INFINISPAN_SERVER_PORT})
 /subsystem=infinispan/remote-cache-container=rhdg-container:add()
 if (outcome == success) of /subsystem=infinispan/remote-cache-container=rhdg-container:read-attribute(name=modules)
     /subsystem=infinispan/remote-cache-container=rhdg-container:write-attribute(name=modules, value=[org.wildfly.clustering.web.hotrod])
@@ -10,7 +10,7 @@ else
 end-if
 /subsystem=infinispan/remote-cache-container=rhdg-container/remote-cluster=rhdg-cluster:add(socket-bindings=[remote-rhdg-server])
 /subsystem=infinispan/remote-cache-container=rhdg-container:write-attribute(name=default-remote-cluster,value=rhdg-cluster)
-/subsystem=infinispan/remote-cache-container=rhdg-container:write-attribute(name=properties, value={infinispan.client.hotrod.use_auth=true,infinispan.client.hotrod.auth_username=foo,infinispan.client.hotrod.auth_password=bar,infinispan.client.hotrod.auth_server_name="example-infinispan",infinispan.client.hotrod.sasl_properties.javax.security.sasl.qop=auth,infinispan.client.hotrod.sasl_mechanism=SCRAM-SHA-512,infinispan.client.hotrod.sni_host_name="example-infinispan",infinispan.client.hotrod.ssl_hostname_validation=false,infinispan.client.hotrod.trust_store_filename=/distributed-sessions-infinispan/tls.crt}
+/subsystem=infinispan/remote-cache-container=rhdg-container:write-attribute(name=properties, value={infinispan.client.hotrod.use_auth=true,infinispan.client.hotrod.auth_username="${env.INFINISPAN_SERVER_USER}",infinispan.client.hotrod.auth_password="${env.INFINISPAN_SERVER_PASSWORD}",infinispan.client.hotrod.auth_server_name="${env.INFINISPAN_SERVER_HOST}",infinispan.client.hotrod.sasl_properties.javax.security.sasl.qop=auth,infinispan.client.hotrod.sasl_mechanism=SCRAM-SHA-512,infinispan.client.hotrod.sni_host_name="${env.INFINISPAN_SERVER_HOST}",infinispan.client.hotrod.ssl_hostname_validation=false,infinispan.client.hotrod.trust_store_filename="${env.INFINISPAN_SERVER_TRUST_STORE_FILENAME}"}
 /subsystem=infinispan/cache-container=web/invalidation-cache=rhdg-cache:add()
 /subsystem=infinispan/cache-container=web/invalidation-cache=rhdg-cache/store=hotrod:add(remote-cache-container=rhdg-container,fetch-state=false,purge=false,passivation=false,shared=true)
 /subsystem=infinispan/cache-container=web:write-attribute(name=default-cache,value=rhdg-cache)

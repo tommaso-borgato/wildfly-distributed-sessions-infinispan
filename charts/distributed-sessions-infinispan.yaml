@@ -1,17 +1,24 @@
 build:
   uri: https://github.com/tommaso-borgato/wildfly-distributed-sessions-infinispan.git
   ref: main
-  env:
-    - name: MAVEN_ARGS_APPEND
-      value: -P openshift
   s2i:
     buildApplicationImage: true
 deploy:
   env:
+    - name: INFINISPAN_SERVER_HOST
+      value: 'example-infinispan'
+    - name: INFINISPAN_SERVER_PORT
+      value: '11222'
+    - name: INFINISPAN_SERVER_TRUST_STORE_FILENAME
+      value: '/distributed-sessions-infinispan/tls.crt'
+    - name: INFINISPAN_SERVER_USER
+      value: 'foo'
+    - name: INFINISPAN_SERVER_PASSWORD
+      value: 'bar'
   volumes:
     - name: connect-secret-crt-volume
       secret:
         secretName: connect-secret-crt
   volumeMounts:
     - name: connect-secret-crt-volume
-      mountPath: /distributed-sessions-infinispan
+      mountPath: '/distributed-sessions-infinispan'
