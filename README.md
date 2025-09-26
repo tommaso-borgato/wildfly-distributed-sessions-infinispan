@@ -27,6 +27,7 @@ oc create secret generic connect-secret --from-file=/tmp/identities.yaml
 
 ### Deploy Infinispan Server
 
+/tmp/example-infinispan.yaml:
 ```yaml
 apiVersion: infinispan.org/v1
 kind: Infinispan
@@ -39,6 +40,10 @@ spec:
   security:
     endpointSecretName: connect-secret
   replicas: 1
+```
+
+```bash
+oc apply -f /tmp/example-infinispan.yaml
 ```
 
 NOTE: after deployment, the following is added which points to the operator generated TLS key:
@@ -148,3 +153,87 @@ export INFINISPAN_SERVER_PASSWORD=bar
 
 Now hit http://localhost:8080/serial a few times using your browser (we need cookies), then shut down and re-start WildFly:
 the serial number continues to increase because that data was stored in Infinispan and wasn't lots when WildFly stopped.
+
+## Using Custom Certificates
+
+### Create the key and the certificate
+
+#### Generates a key pair into a JKS store (privatekey.pkcs12)
+
+```shell
+keytool -genkeypair -noprompt -alias self -keyalg RSA -keysize 2048 -sigalg SHA256withRSA -dname "CN=example-infinispan.infinispan.svc" -validity 365 -keystore privatekey.pkcs12 -storepass password -storetype PKCS12
+```
+
+List the content in `privatekey.pkcs12`:
+```shell
+keytool -list -keystore privatekey.pkcs12 -storepass password
+```
+
+#### Exports certificate (example-infinispan.crt)
+```shell
+keytool -exportcert -noprompt -rfc -alias self -file example-infinispan.crt -keystore privatekey.pkcs12 -storepass password -storetype PKCS12
+```
+
+#### Export private key
+```shell
+openssl pkcs12 -in privatekey.pkcs12 -nocerts -nodes -out privatekey.key -passin pass:password
+```
+
+### Create a TLS Secret containing key and certificate
+This one is for the Infinispan Server:
+```shell
+oc create secret generic example-infinispan-custom-key-and-certificate-secret --from-file=tls.crt=/tmp/tls/example-infinispan.crt --from-file=tls.key=/tmp/tls/privatekey.key 
+```
+
+oc create secret generic example-infinispan-custom-keystore-secret --from-file=keystore.p12=/tmp/tls/privatekey.pkcs12 --from-env-file /tmp/tls/stringData
+```
+
+### Create a TLS Secret containing just the certificate
+This one is for WildFly:
+```shell
+oc create secret generic example-infinispan-custom-certificate-secret --from-file=example-infinispan.crt=/tmp/tls/example-infinispan.crt
+```
+
+### Create the Infinispan Server using these keys
+
+/tmp/example-infinispan.yaml:
+```yaml
+apiVersion: infinispan.org/v1
+kind: Infinispan
+metadata:
+  name: example-infinispan
+  namespace: infinispan
+spec:
+  security:
+    endpointEncryption:
+      type: Secret
+      certSecretName: example-infinispan-custom-key-and-certificate-secret
+      clientCert: None
+    endpointSecretName: connect-secret
+  replicas: 1
+```
+
+```shell
+echo 'password="password"' > /tmp/tls/stringData
+echo 'alias="self"' >> /tmp/tls/stringData
+```
+```yaml
+apiVersion: infinispan.org/v1
+kind: Infinispan
+metadata:
+  name: example-infinispan
+  namespace: infinispan
+spec:
+  security:
+    endpointEncryption:
+      type: Secret
+      certSecretName: example-infinispan-custom-keystore-secret
+      clientCert: None
+    endpointSecretName: connect-secret
+  replicas: 1
+```
+
+```bash
+oc apply -f /tmp/example-infinispan.yaml
+```
+
