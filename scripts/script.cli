@@ -2,14 +2,11 @@
 /subsystem=logging/logger=org.wildfly.clustering.web.infinispan:write-attribute(name=level, value=DEBUG)
 /subsystem=logging/logger=org.wildfly.clustering.web.infinispan:add-handler(name=CONSOLE)
 /socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=remote-rhdg-server:add(host="${infinispan.server.host}", port=${infinispan.server.port})
-/subsystem=infinispan/remote-cache-container=rhdg-container:add()
-if (outcome == success) of /subsystem=infinispan/remote-cache-container=rhdg-container:read-attribute(name=modules)
-    /subsystem=infinispan/remote-cache-container=rhdg-container:write-attribute(name=modules, value=[org.wildfly.clustering.web.hotrod])
-else
-    /subsystem=infinispan/remote-cache-container=rhdg-container:write-attribute(name=module, value=org.wildfly.clustering.web.hotrod)
-end-if
+batch
+/subsystem=infinispan/remote-cache-container=rhdg-container:add(default-remote-cluster=rhdg-cluster)
 /subsystem=infinispan/remote-cache-container=rhdg-container/remote-cluster=rhdg-cluster:add(socket-bindings=[remote-rhdg-server])
 /subsystem=infinispan/remote-cache-container=rhdg-container:write-attribute(name=default-remote-cluster,value=rhdg-cluster)
+run-batch
 /subsystem=infinispan/remote-cache-container=rhdg-container:write-attribute(name=properties, value={infinispan.client.hotrod.use_auth=true,infinispan.client.hotrod.auth_username="${infinispan.server.user}",infinispan.client.hotrod.auth_password="${infinispan.server.password}",infinispan.client.hotrod.sasl_properties.javax.security.sasl.qop=auth,infinispan.client.hotrod.sasl_mechanism=SCRAM-SHA-512,infinispan.client.hotrod.sni_host_name="${infinispan.server.host}",infinispan.client.hotrod.ssl_hostname_validation=false,infinispan.client.hotrod.client_intelligence=BASIC,infinispan.client.hotrod.trust_store_path=${infinispan.server.trust.store.filename}}
 /subsystem=infinispan/cache-container=web/invalidation-cache=rhdg-cache:add()
 /subsystem=infinispan/cache-container=web/invalidation-cache=rhdg-cache/store=hotrod:add(remote-cache-container=rhdg-container,fetch-state=false,purge=false,passivation=false,shared=true)
