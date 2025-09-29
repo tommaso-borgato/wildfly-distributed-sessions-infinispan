@@ -17,32 +17,32 @@ https://infinispan.org/docs/infinispan-operator/main/operator.html#installation
 https://infinispan.org/docs/infinispan-operator/main/operator.html#adding-credentials_authn
 
 ```bash
-$ cat /tmp/identities.yaml
+cat <<EOF > /tmp/identities.yaml
 credentials:
 - username: foo
   password: bar
+EOF
 
 oc create secret generic connect-secret --from-file=/tmp/identities.yaml
 ```
 
 ### Deploy Infinispan Server
 
-/tmp/example-infinispan.yaml:
-```yaml
+```shell
+cat <<EOF >
 apiVersion: infinispan.org/v1
 kind: Infinispan
 metadata:
   name: example-infinispan
   labels:
    app: datagrid
-   namespace: datagrid-operator
+   namespace: infinispan
 spec:
   security:
     endpointSecretName: connect-secret
   replicas: 1
-```
+EOF
 
-```bash
 oc apply -f /tmp/example-infinispan.yaml
 ```
 
@@ -161,43 +161,57 @@ the serial number continues to increase because that data was stored in Infinisp
 #### Generates a key pair into a JKS store (privatekey.pkcs12)
 
 ```shell
-keytool -genkeypair -noprompt -alias self -keyalg RSA -keysize 2048 -sigalg SHA256withRSA -dname "CN=example-infinispan.infinispan.svc" -validity 365 -keystore privatekey.pkcs12 -storepass password -storetype PKCS12
+keytool -genkeypair -noprompt -alias server -keyalg RSA -keysize 2048 -sigalg SHA256withRSA -dname "CN=example-infinispan.infinispan.svc" -validity 365 -keystore privatekey.pkcs12 -storepass 1234PIPPOBAUDO -storetype PKCS12 -ext 'san=dns:*.example-infinispan.infinispan.svc'
 ```
 
 List the content in `privatekey.pkcs12`:
 ```shell
-keytool -list -keystore privatekey.pkcs12 -storepass password
+keytool -list -keystore privatekey.pkcs12 -storepass 1234PIPPOBAUDO
 ```
 
 #### Exports certificate (example-infinispan.crt)
 ```shell
-keytool -exportcert -noprompt -rfc -alias self -file example-infinispan.crt -keystore privatekey.pkcs12 -storepass password -storetype PKCS12
+keytool -exportcert -noprompt -rfc -alias server -file hostname.crt -keystore privatekey.pkcs12 -storepass 1234PIPPOBAUDO -storetype PKCS12
 ```
 
-#### Export private key
+### Create Secret containing key and certificate
+
 ```shell
-openssl pkcs12 -in privatekey.pkcs12 -nocerts -nodes -out privatekey.key -passin pass:password
+cat <<EOF > example-infinispan-keystore-p12.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: example-infinispan-keystore-p12
+type: Opaque
+stringData:
+  alias: server
+  password: 1234PIPPOBAUDO
+data:
+  keystore.p12: $(cat privatekey.pkcs12 | base64 -w 0)
+EOF
+
+oc delete secret example-infinispan-keystore-p12                                                                            
+oc apply -f example-infinispan-keystore-p12.yaml 
 ```
 
-### Create a TLS Secret containing key and certificate
+### Create Secret containing certificate
 This one is for the Infinispan Server:
 ```shell
-oc create secret generic example-infinispan-custom-key-and-certificate-secret --from-file=tls.crt=/tmp/tls/example-infinispan.crt --from-file=tls.key=/tmp/tls/privatekey.key 
-```
-
-oc create secret generic example-infinispan-custom-keystore-secret --from-file=keystore.p12=/tmp/tls/privatekey.pkcs12 --from-env-file /tmp/tls/stringData
-```
-
-### Create a TLS Secret containing just the certificate
-This one is for WildFly:
-```shell
-oc create secret generic example-infinispan-custom-certificate-secret --from-file=example-infinispan.crt=/tmp/tls/example-infinispan.crt
+oc create secret generic example-infinispan-certificate-crt --from-file=example-infinispan.crt=hostname.crt
 ```
 
 ### Create the Infinispan Server using these keys
 
-/tmp/example-infinispan.yaml:
-```yaml
+```shell
+cat <<EOF > /tmp/identities.yaml
+credentials:
+- username: foo
+  password: bar
+EOF
+
+oc create secret generic connect-secret --from-file=/tmp/identities.yaml
+
+cat <<EOF > /tmp/example-infinispan.yaml
 apiVersion: infinispan.org/v1
 kind: Infinispan
 metadata:
@@ -207,33 +221,18 @@ spec:
   security:
     endpointEncryption:
       type: Secret
-      certSecretName: example-infinispan-custom-key-and-certificate-secret
+      certSecretName: example-infinispan-keystore-p12
       clientCert: None
     endpointSecretName: connect-secret
   replicas: 1
+EOF
+
+oc apply -f /tmp/example-infinispan.yaml
 ```
 
-```shell
-echo 'password="password"' > /tmp/tls/stringData
-echo 'alias="self"' >> /tmp/tls/stringData
-```
-```yaml
-apiVersion: infinispan.org/v1
-kind: Infinispan
-metadata:
-  name: example-infinispan
-  namespace: infinispan
-spec:
-  security:
-    endpointEncryption:
-      type: Secret
-      certSecretName: example-infinispan-custom-keystore-secret
-      clientCert: None
-    endpointSecretName: connect-secret
-  replicas: 1
-```
+### Deploy WildFly using Helm
 
 ```bash
-oc apply -f /tmp/example-infinispan.yaml
+helm install distributed-sessions-infinispan -f charts/distributed-sessions-infinispan-custom-certificate.yaml wildfly/wildfly
 ```
 

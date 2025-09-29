@@ -10,8 +10,7 @@ deploy:
     - name: INFINISPAN_SERVER_PORT
       value: '11222'
     - name: INFINISPAN_SERVER_TRUST_STORE_FILENAME
-      #value: '/distributed-sessions-infinispan/tls.crt'
-      value: '/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt'
+      value: '/distributed-sessions-infinispan/example-infinispan.crt'
     - name: INFINISPAN_SERVER_USER
       value: 'foo'
     - name: INFINISPAN_SERVER_PASSWORD
@@ -19,7 +18,7 @@ deploy:
   volumes:
     - name: connect-secret-crt-volume
       secret:
-        secretName: connect-secret-crt
+        secretName: example-infinispan-certificate-crt
   volumeMounts:
     - name: connect-secret-crt-volume
       mountPath: '/distributed-sessions-infinispan'

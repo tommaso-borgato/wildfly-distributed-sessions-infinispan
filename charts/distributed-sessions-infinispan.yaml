@@ -10,7 +10,6 @@ deploy:
     - name: INFINISPAN_SERVER_PORT
       value: '11222'
     - name: INFINISPAN_SERVER_TRUST_STORE_FILENAME
-      #value: '/distributed-sessions-infinispan/tls.crt'
       value: '/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt'
     - name: INFINISPAN_SERVER_USER
       value: 'foo'
